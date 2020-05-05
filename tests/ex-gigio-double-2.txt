@@ -1,0 +1,1 @@
+rec x . [?x1;?x2;[!a;x, !b;x, !c; rec y. [?x1; ?x2; y, ?y1; ?y2; end]]    ,   ?y1;?y2;rec z . [!a;z, !b;z, !c;end]]

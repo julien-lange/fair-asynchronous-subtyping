@@ -1,0 +1,2 @@
+rec X . [ ?a; !b; X ,
+          ?c; !d; end ]

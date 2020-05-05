@@ -50,19 +50,17 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
           Nothing -> putStrLn "Maybe"
           Just (b,(t,ancs)) -> do let ts = splitTree ancs t                                      
                                   putStrLn (show $ b && (L.all (goodTree ancs) ts))
-                                  when debug $ 
-                                    do let 
-                                           
-                                       putStrLn $ "Candidate sub-type controllable: "++(show $ isControllable m1)
-                                       putStrLn $ "Candidate super-type controllable: "++(show $ isControllable m2)
-                                       putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
-                                       putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
-                                       
-                                       writeToFile "sim_tree.dot" (printTrees ancs [t])
-                                       mkPicture ("sim_tree.dot") ("sim_tree.svg")
+                                  when debug $ do
+                                           putStrLn $ "Candidate sub-type controllable: "++(show $ isControllable m1)
+                                           putStrLn $ "Candidate super-type controllable: "++(show $ isControllable m2)
+                                           putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
+                                           putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
+                                         
+                                           writeToFile "sim_tree.dot" (printTrees ancs [t])
+                                           mkPicture ("sim_tree.dot") ("sim_tree.svg")
 
-                                       writeToFile "witness_trees.dot" (printTrees ancs ts)
-                                       mkPicture ("witness_trees.dot") ("witness_trees.svg")
+                                           writeToFile "witness_trees.dot" (printTrees ancs ts)
+                                           mkPicture ("witness_trees.dot") ("witness_trees.svg")
     
                
 buildTree :: Int -> Bool -> Machine -> Machine -> Maybe (Bool, (CTree, Ancestors))
@@ -70,7 +68,7 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
 
   where helper :: Int -> IValue -> [(Label, IValue)] -> Maybe (Bool, (CTree, Ancestors))
         helper b v seen 
-          | b == 0 = Just (False, ((Node v [] Bound), M.empty))
+          | b == 0 = Nothing -- Just (Nothing , ((Node v [] Bound), M.empty))
           | otherwise = case find (equalConf debug v) (L.map snd seen) of
             -- increase
             Just anc -> Just (True, ((Node v [] Increase), M.singleton v anc))

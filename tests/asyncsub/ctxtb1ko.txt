@@ -1,0 +1,1 @@
+rec X . [?a;!x;!x;X, ?b;!y; ?b;?b;?b;?e;end]

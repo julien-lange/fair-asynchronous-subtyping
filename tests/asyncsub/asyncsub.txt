@@ -1,0 +1,95 @@
+(( || ))
+|
++- false
+|
+`- (( && ))
+   |
+   +- [Received]
+   |  |
+   |  `- (( || ))
+   |     |
+   |     +- <Senda>
+   |     |  |
+   |     |  `- (( || ))
+   |     |     |
+   |     |     +- false
+   |     |     |
+   |     |     `- (( && ))
+   |     |        |
+   |     |        +- [Receivee]
+   |     |        |  |
+   |     |        |  `- [true]
+   |     |        |     |
+   |     |        |     `- false
+   |     |        |
+   |     |        +- <Receivee>
+   |     |        |  |
+   |     |        |  `- true
+   |     |        |
+   |     |        `- [(Senda+Received)]
+   |     |           |
+   |     |           `- false
+   |     |
+   |     `- (( && ))
+   |        |
+   |        +- <(Received+Receivee)+>
+   |        |  |
+   |        |  `- <Senda>
+   |        |     |
+   |        |     `- true
+   |        |
+   |        +- [(Senda)]
+   |        |  |
+   |        |  `- false
+   |        |
+   |        `- (( || ))
+   |           |
+   |           +- <Senda>
+   |           |  |
+   |           |  `- (( || ))
+   |           |     |
+   |           |     +- false
+   |           |     |
+   |           |     `- (( && ))
+   |           |        |
+   |           |        +- [Receivee]
+   |           |        |  |
+   |           |        |  `- [true]
+   |           |        |     |
+   |           |        |     `- false
+   |           |        |
+   |           |        +- <Receivee>
+   |           |        |  |
+   |           |        |  `- true
+   |           |        |
+   |           |        `- [(Senda+Received)]
+   |           |           |
+   |           |           `- false
+   |           |
+   |           `- (( && ))
+   |              |
+   |              +- [Receivee]
+   |              |  |
+   |              |  `- (( && ))
+   |              |     |
+   |              |     `- <Senda>
+   |              |        |
+   |              |        `- [true]
+   |              |           |
+   |              |           `- false
+   |              |
+   |              +- <Receivee>
+   |              |  |
+   |              |  `- true
+   |              |
+   |              `- [(Senda+Received)]
+   |                 |
+   |                 `- false
+   |
+   +- <Received>
+   |  |
+   |  `- true
+   |
+   `- [(Senda+Receivee)]
+      |
+      `- false

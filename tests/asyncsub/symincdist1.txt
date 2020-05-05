@@ -1,0 +1,3 @@
+[?one; !v;rec X . [?w;!b;?u;X, ?Z;!a;?y;X]
+,?two; !o;!i;!A;!y;?s;rec X . [?a;!A;!y;!A;!y;X, ?b;!o;!i;!o;!i;X]
+]

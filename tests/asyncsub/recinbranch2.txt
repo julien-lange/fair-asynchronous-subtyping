@@ -1,0 +1,1 @@
+&[?b; rec X . !a; !a; X, ?c; rec Y . +{!a; Y,!b;Y}]

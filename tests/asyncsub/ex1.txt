@@ -1,0 +1,6 @@
+rec X . [   ?b;!x;X,
+      	    ?a; [!x;X , 
+                 !y;?b;rec Y.[?a;!x;Y , 
+	                     ?b;!y;Y]
+ 	        ] 
+        ]

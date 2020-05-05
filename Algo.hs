@@ -166,7 +166,7 @@ oneStep debug m1 v@(p,m)
     --
   | not $ isControllable m = Just [] 
     --
-  | (isInput m1 p) && (isInput m (tinit m)) && ((inBarb m1 p) == (inBarb m (tinit m))) =  
+  | (isInput m1 p) && (isInput m (tinit m)) && ((inBarb m (tinit m)) `isSubsetOf` (inBarb m1 p)) =  
       (if debug then (trace ("In: "++(show (p,(tinit m)))) ) else (\x  -> x  )) $ 
       let  psmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==p) $ transitions m1
            qsmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==(tinit m)) $ transitions m               

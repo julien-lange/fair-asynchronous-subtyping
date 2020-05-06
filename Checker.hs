@@ -74,6 +74,7 @@ getLocalTypeString Passive s = readFile s
 getLocalTypeString Interactive s = return s
 
 
+
 main :: IO ()
 main = do 
   pargs <- cmdArgs (modes [subargs]) 
@@ -89,8 +90,11 @@ main = do
           then putStrLn "Error in local type (not well-formed)."
           else 
             do
+              let b = if ((bound pargs) == -1)
+                      then typeDepth supans
+                      else bound pargs
               start <- getCurrentTime
-              checkingAlgorithm (bound pargs) (dualflag pargs) (debug pargs) True subans supans
+              checkingAlgorithm b (dualflag pargs) (debug pargs) True subans supans
               end <- getCurrentTime
               putStrLn $ (show $ diffUTCTime end start)
             --  return ()

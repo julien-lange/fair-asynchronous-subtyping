@@ -91,7 +91,7 @@ main = do
           else 
             do
               let b = if ((bound pargs) == -1)
-                      then typeDepth supans
+                      then 2*(typeDepth supans)
                       else bound pargs
               start <- getCurrentTime
               checkingAlgorithm b (dualflag pargs) (debug pargs) True subans supans

@@ -48,7 +48,7 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
   in do when debug $
           do machine2file m1 "sub"
              machine2file m2 "sup"
-    
+             putStrLn $ "Bound: "++(show bound)
         case buildTree bound debug m1 m2 of 
           Nothing -> putStrLn "Maybe"
           Just (b,(to,ancs)) -> 

@@ -60,7 +60,8 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
                  Just t' -> do let ts = splitTree ancs t'
                                putStrLn (show $ b && (L.all (goodTree ancs) ts))
                                when debug $ printDebugInfo m1 m2 t ts ancs
-    
+     
+     
 printDebugInfo :: Machine -> Machine -> CTree -> [CTree] -> Ancestors -> IO ()
 printDebugInfo m1 m2 t ts ancs = 
   do 
@@ -112,7 +113,8 @@ splitTree ancs t = helper ancs t
           | otherwise = concat $ L.map (\(x,c) -> helper acs c) xs
                         
 goodTree :: Ancestors -> CTree -> Bool
-goodTree ancs t@(Node v xs f) = L.all (\n -> equalConf False n v) $ L.intersect (leaves t) descendants
+goodTree ancs t@(Node v xs f) = 
+  L.all (\n -> equalConf False n v) $ L.intersect (leaves t) descendants
   where descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
@@ -125,8 +127,8 @@ sequencePair ((x,Just y):xs) = case sequencePair xs of
 sequencePair ((x,Nothing):xs) = Nothing
 
 equalConf :: Bool -> IValue -> IValue -> Bool
-equalConf debug (i1, (p,m)) (i2, (p',m')) = (p==p') && (equivRepeat
-                                                        debug m' m) 
+equalConf debug (i1, (p,m)) (i2, (p',m')) = 
+  (p==p') && (equivRepeat debug m' m) 
 
 tagRemovable :: Machine -> CTree -> CTree
 tagRemovable m1 t = helper [] t
@@ -171,8 +173,8 @@ equivRepeat debug m1 m2 = (helper (tinit m1, tinit m2) [])
             (              
               (nonempty p)
               &&
-              (nonempty q)
-              &&
+              -- (nonempty q)
+              -- &&
               ((ssucc . removess $ p) == (removess q))
               &&
               (

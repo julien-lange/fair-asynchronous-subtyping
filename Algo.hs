@@ -25,8 +25,9 @@ import Debug.Trace
 
 type Value = (State, Machine)
 type IValue = (String, Value)
+type PrintV = (NType, IValue)
 type Ancestors = Map IValue IValue
-type Edge = (IValue, (Label, IValue))
+type Edge = (PrintV, (Label, PrintV))
 type NodeMap = Map IValue String
 data CTree = Node
              { label :: IValue
@@ -35,8 +36,10 @@ data CTree = Node
              }
            deriving (Show, Eq)
 
-data NType = Increase | Decrease | Seen | Interm | Bound
-           deriving (Show, Eq)
+data NType = Increase | Decrease | 
+             Seen | Interm | Bound | Removable |
+             Tmp | Keep
+           deriving (Show, Eq, Ord)
      
 checkingAlgorithm :: Int -> Bool -> Bool -> Bool -> LocalType -> LocalType -> IO ()
 checkingAlgorithm bound dual debug nomin t1 t2 =
@@ -48,21 +51,30 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
     
         case buildTree bound debug m1 m2 of 
           Nothing -> putStrLn "Maybe"
-          Just (b,(t,ancs)) -> do let ts = splitTree ancs t                                      
-                                  putStrLn (show $ b && (L.all (goodTree ancs) ts))
-                                  when debug $ do
-                                           putStrLn $ "Candidate sub-type controllable: "++(show $ isControllable m1)
-                                           putStrLn $ "Candidate super-type controllable: "++(show $ isControllable m2)
-                                           putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
-                                           putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
-                                         
-                                           writeToFile "sim_tree.dot" (printTrees ancs [t])
-                                           mkPicture ("sim_tree.dot") ("sim_tree.svg")
-
-                                           writeToFile "witness_trees.dot" (printTrees ancs ts)
-                                           mkPicture ("witness_trees.dot") ("witness_trees.svg")
+          Just (b,(to,ancs)) -> 
+            let t = tagRemovable m1 to 
+            in
+            do case prune m1 t of
+                 Nothing -> do putStrLn (show b)
+                               when debug $ printDebugInfo m1 m2 t [] ancs
+                 Just t' -> do let ts = splitTree ancs t'
+                               putStrLn (show $ b && (L.all (goodTree ancs) ts))
+                               when debug $ printDebugInfo m1 m2 t ts ancs
     
-               
+printDebugInfo :: Machine -> Machine -> CTree -> [CTree] -> Ancestors -> IO ()
+printDebugInfo m1 m2 t ts ancs = 
+  do 
+    putStrLn $ "Candidate sub-type controllable: "++(show $ isControllable m1)
+    putStrLn $ "Candidate super-type controllable: "++(show $ isControllable m2)
+    putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
+    putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
+  
+    writeToFile "sim_tree.dot" (printTrees ancs [t])
+    mkPicture ("sim_tree.dot") ("sim_tree.svg")
+  
+    writeToFile "witness_trees.dot" (printTrees ancs ts)
+    mkPicture ("witness_trees.dot") ("witness_trees.svg")
+     
 buildTree :: Int -> Bool -> Machine -> Machine -> Maybe (Bool, (CTree, Ancestors))
 buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) [] 
 
@@ -113,8 +125,37 @@ sequencePair ((x,Just y):xs) = case sequencePair xs of
 sequencePair ((x,Nothing):xs) = Nothing
 
 equalConf :: Bool -> IValue -> IValue -> Bool
-equalConf debug (i1, (p,m)) (i2, (p',m')) = (p==p') && (equivRepeat debug m' m) 
+equalConf debug (i1, (p,m)) (i2, (p',m')) = (p==p') && (equivRepeat
+                                                        debug m' m) 
+
+tagRemovable :: Machine -> CTree -> CTree
+tagRemovable m1 t = helper [] t
+  where helper seen n@(Node (i,v) xs f) 
+          | not $ isControllable (snd v) = tag n
+          | isFinalConf m1 v = tag n
+          | L.any (nodeeq v) seen = tag n
+          | L.null xs = n
+          | otherwise = 
+            let ys = L.map (\(a,x) -> (a, helper (v:seen) x)) xs
+                rm = L.all (\(a,(Node _ _ tg)) -> tg == Removable) ys
+            in if rm 
+               then (Node (i,v) ys Removable)
+               else (Node (i,v) ys Keep)
+        tag (Node (i,v) xs _) = (Node (i,v) xs Removable)
+        nodeeq (p,m) (p',m') = (p==p') && (bisimilar m m')
           
+
+prune :: Machine -> CTree -> Maybe CTree
+prune m1 t = remove t  -- $ (tagRemovable m1 t)
+  where remove (Node v xs Removable) = Nothing
+        remove (Node v xs f) = 
+          let ys = catMaybes $ L.map (\(a,x) -> case remove x of 
+                                         Just y -> Just (a,y)
+                                         Nothing -> Nothing
+                                     ) xs
+          in Just (Node v ys f)
+             
+
 equivRepeat :: Bool -> Machine -> Machine -> Bool
 equivRepeat debug m1 m2 = (helper (tinit m1, tinit m2) [])
   where helper (p,q) seen 
@@ -227,35 +268,30 @@ replaceInMachine m l qs = cleanUp $ Machine { states = nstates
 
 -- --------------------- PRINTING STUFF -----------------
 
-printNodeLabel :: IValue -> String
-printNodeLabel (i,(p,m)) = 
-  let nm = rename (\s -> i++s) m
-  in "subgraph cluster_conf"++i++" {\n"
-     ++"label = \""++i++": "++p++"\";\n"
-     ++(printMachineBody nm)
-     ++"}"
 
-mkNodeMap :: Int -> [IValue] -> NodeMap
-mkNodeMap i xs = M.fromList $ L.map (\(id,y) -> ((id,y),"node"++(show i)++id)) xs
+mkNodeMap :: Int -> [PrintV] -> NodeMap
+mkNodeMap i xs = M.fromList $ L.map (\(tag, (id,y)) -> ((id,y),"node"++(show i)++id)) xs
 
-printNodeId :: NodeMap -> IValue -> String
-printNodeId  map v = case M.lookup v map of
-                      Just s -> s
-                      Nothing -> error $ "Node "++(show v)++" not found."
+printNodeId :: NodeMap -> PrintV -> String
+printNodeId  map (tag,v) = case M.lookup v map of
+  Just s -> s
+  Nothing -> error $ "Node "++(show v)++" not found."
 
-printNode :: NodeMap -> IValue -> String
-printNode map v@(i,(p,m)) = 
+printNode :: NodeMap -> PrintV -> String
+printNode map v@(tag, (i,(p,m))) = 
   let nm = rename (\s -> i++s) m
   in "subgraph cluster_conf"++(printNodeId map v)++" {\n"
-     ++"label = \" L"++i++": "++p++"\";\n"
+     ++"label = \" L"++i++": "++p++"("++(printTag tag)++")"++"\";\n"
      ++(printNodeId map v)++"[style = invis];\n" -- style = invis
      ++(printMachineBody nm)
      ++"}"
 
-mkGraph :: CTree -> (IValue, [Edge])
-mkGraph (Node v xs _) = (v, helper v xs)
-  where helper n ys = concat $
-                          L.map (\(l, (Node w zs _)) -> (n,(l, w)):(helper w zs)) ys
+mkGraph :: CTree -> (PrintV, [Edge])
+mkGraph (Node v xs tag) = ((tag, v), helper (tag, v) xs)
+  where helper n ys = 
+          concat $
+          L.map (\(l, (Node w zs tag')) -> 
+                  (n,(l,(tag', w))):(helper (tag', w) zs)) ys
 
 
 printEdge :: NodeMap -> Edge -> String
@@ -265,22 +301,26 @@ printEdge map (s,(l,t)) = (printNodeId map s)++" -> "++(printNodeId map t)
                           ++", label=\""++(printEdgeLabel l)++"\", minlen=3];"
 
 printAncestorEdge :: NodeMap -> (IValue, IValue) -> String
-printAncestorEdge map (s,t) = (printNodeId map s)++" -> "++(printNodeId map t)
-                              ++" [lhead=cluster_conf"++(printNodeId map t)
-                              ++", ltail=cluster_conf"++(printNodeId map s)
-                              ++", minlen=3, style=dashed];"
+printAncestorEdge map (s',t') = 
+  let s = (Tmp, s')
+      t = (Tmp, t')
+  in  (printNodeId map s)++" -> "++(printNodeId map t)
+      ++" [lhead=cluster_conf"++(printNodeId map t)
+      ++", ltail=cluster_conf"++(printNodeId map s)
+      ++", minlen=3, style=dashed];"
 
 
 
-printGraph :: Int -> IValue -> [Edge] -> Ancestors -> String
+printGraph :: Int -> PrintV -> [Edge] -> Ancestors -> String
 printGraph i init edges ancestors =
   let nodes = nub $ concat $ L.map (\(s,(l,t)) -> [s,t]) edges
       nmap = mkNodeMap i nodes
       snodes = intercalate "\n" $ L.map (printNode nmap) nodes
       sedges = intercalate "\n" $ L.map (printEdge nmap) edges
       ancs = intercalate "\n" $ L.map (printAncestorEdge nmap) $
-             L.filter (\(t,s) -> (t `L.elem` nodes) && (s `L.elem` nodes)) $
+             L.filter (\(t,s) -> (inlist t) && (inlist s)) $
              M.toList ancestors
+      inlist t = t `L.elem` (L.map snd nodes) 
   in snodes++"\n"
      ++sedges++"\n"
      ++ancs++"\n"
@@ -306,7 +346,8 @@ printEdgeLabel :: Label -> String
 printEdgeLabel (Send, msg) = "!"++(msg)
 printEdgeLabel (Receive, msg) = "?"++(msg)
 
-
-
+printTag Removable = "R"
+printTag Keep = "K"
+printTag _ = "U"
 
               

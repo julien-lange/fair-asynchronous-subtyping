@@ -150,7 +150,8 @@ prune m1 ancs t = remove t  -- $ (tagRemovable m1 t)
   where remove (Node v xs Removable) = Nothing
         remove (Node v xs Keep) = 
           if v `L.elem` (M.elems ancs) 
-          then Just (Node v xs Keep)
+          then Just (Node v xs Keep) -- if you're an ancestor but
+               -- unmarked, dont prune below!
           else let ys = catMaybes $ L.map (\(a,x) -> case remove x of 
                                               Just y -> Just (a,y)
                                               Nothing -> Nothing

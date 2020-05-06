@@ -54,7 +54,7 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
           Just (b,(to,ancs)) -> 
             let t = tagRemovable m1 to 
             in
-            do case prune m1 t of
+            do case prune m1 ancs t of
                  Nothing -> do putStrLn (show b)
                                when debug $ printDebugInfo m1 m2 t [] ancs
                  Just t' -> do let ts = splitTree ancs t'
@@ -145,15 +145,19 @@ tagRemovable m1 t = helper [] t
         nodeeq (p,m) (p',m') = (p==p') && (bisimilar m m')
           
 
-prune :: Machine -> CTree -> Maybe CTree
-prune m1 t = remove t  -- $ (tagRemovable m1 t)
+prune :: Machine -> Ancestors -> CTree -> Maybe CTree
+prune m1 ancs t = remove t  -- $ (tagRemovable m1 t)
   where remove (Node v xs Removable) = Nothing
-        remove (Node v xs f) = 
-          let ys = catMaybes $ L.map (\(a,x) -> case remove x of 
-                                         Just y -> Just (a,y)
-                                         Nothing -> Nothing
-                                     ) xs
-          in Just (Node v ys f)
+        remove (Node v xs Keep) = 
+          if v `L.elem` (M.elems ancs) 
+          then Just (Node v xs Keep)
+          else let ys = catMaybes $ L.map (\(a,x) -> case remove x of 
+                                              Just y -> Just (a,y)
+                                              Nothing -> Nothing
+                                          ) xs
+               in Just (Node v ys Keep)
+        remove n = Just n
+          
              
 
 equivRepeat :: Bool -> Machine -> Machine -> Bool

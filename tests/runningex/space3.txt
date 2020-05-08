@@ -1,5 +1,0 @@
-rec x . [?cmd;
-		[!telemetry;x,
-		!over; rec y. [?cmd;y,
-			      ?done;end]]   ,
-	   ?done;rec z . [!telemetry;z, !over;end]]

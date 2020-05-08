@@ -1,1 +1,1 @@
-rec x . [!telemetry;x, !over;rec y . [?cmd;y, ?done;end]]
+rec x . [!tm;x, !over;rec y . [?tc;y, ?done;end]]

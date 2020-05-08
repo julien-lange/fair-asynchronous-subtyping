@@ -51,8 +51,9 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
              putStrLn $ "Bound: "++(show bound)
         case buildTree bound debug m1 m2 of 
           Nothing -> putStrLn "Maybe"
-          Just (b,(to,ancs)) -> 
+          Just (b',(to,ancs)) -> 
             let t = tagRemovable m1 to 
+                b = (isControllable m2) || b'
             in
             do case prune m1 ancs t of
                  Nothing -> do putStrLn (show b)
@@ -81,7 +82,8 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
 
   where helper :: Int -> IValue -> [(Label, IValue)] -> Maybe (Bool, (CTree, Ancestors))
         helper b v seen 
-          | b == 0 = Nothing -- Just (Nothing , ((Node v [] Bound), M.empty))
+          | b == 0 = Nothing -- Just (Nothing , ((Node v [] Bound),
+                     -- M.empty))
           | otherwise = case find (equalConf debug v) (L.map snd seen) of
             -- increase
             Just anc -> Just (True, ((Node v [] Increase), M.singleton v anc))
@@ -133,7 +135,6 @@ equalConf debug (i1, (p,m)) (i2, (p',m')) =
 tagRemovable :: Machine -> CTree -> CTree
 tagRemovable m1 t = helper [] t
   where helper seen n@(Node (i,v) xs f) 
-          | not $ isControllable (snd v) = tag n
           | isFinalConf m1 v = tag n
           | L.any (nodeeq v) seen = tag n
           | L.null xs = n
@@ -207,6 +208,13 @@ isFinalConf :: Machine -> Value -> Bool
 isFinalConf m1 (p, m) = (isFinal m1 p) && (isFinal m (tinit m))
           
 
+inControllableBarb :: Machine -> State -> Set Message
+inControllableBarb m p = 
+  S.fromList $ 
+  L.map (snd . fst . snd) $ 
+  L.filter (\(s,((d, lab),t)) -> 
+             s==p && d==Receive && (isControllable $ updateInit t m) ) $ transitions m 
+
 oneStep :: Bool -> Machine -> Value -> Maybe [(Label, Value)]
 oneStep debug m1 v@(p,m)
   | isFinalConf m1 v = (if debug then (trace ("Final: "++(show (p,(tinit m)))++"\n"++(printMachine m)) ) else (\x  -> x  )) $ 
@@ -214,11 +222,17 @@ oneStep debug m1 v@(p,m)
     --
   | not $ isControllable m = Just [] 
     --
-  | (isInput m1 p) && (isInput m (tinit m)) && ((inBarb m (tinit m)) `isSubsetOf` (inBarb m1 p)) =  
+  | (isInput m1 p) && (isInput m (tinit m)) && ((inControllableBarb m (tinit m)) `isSubsetOf` (inBarb m1 p)) =  
       (if debug then (trace ("In: "++(show (p,(tinit m)))) ) else (\x  -> x  )) $ 
       let  psmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==p) $ transitions m1
            qsmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==(tinit m)) $ transitions m               
-           next = L.nub $ [(a,(x, cleanUp $ updateInit y m)) | (a,x) <- psmoves, (b,y) <- qsmoves, a==b]
+           next = L.nub 
+                  $ [(a,(x, cleanUp $ updateInit y m)) | 
+                     (a,x) <- psmoves, 
+                     (b,y) <- qsmoves, 
+                     c <- S.toList (inControllableBarb m (tinit m)),
+                     b==(Receive, c),
+                     a==b]
       in Just next
          --
   | (isOutput m1 p) && (isOutput m (tinit m)) && ((outBarb m1 p) == (outBarb m (tinit m))) = 

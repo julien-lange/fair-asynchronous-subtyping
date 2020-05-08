@@ -84,7 +84,7 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
         helper b v seen 
           | b == 0 = Nothing -- Just (Nothing , ((Node v [] Bound),
                      -- M.empty))
-          | otherwise = case find (equalConf debug v) (L.map snd seen) of
+          | otherwise = case findTwo v (L.map snd seen) of
             -- increase
             Just anc -> Just (True, ((Node v [] Increase), M.singleton v anc))
             -- Nothing -> case find (\x -> equalConf debug x v) (L.map snd seen) of
@@ -107,6 +107,8 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
                          res = and $ L.map (\(l,(b,(t,ancs))) -> b) ys
                      in Just (res, ((Node v zs Interm), M.unions mps))
                         
+
+
                         
 splitTree :: Ancestors -> CTree -> [CTree]
 splitTree ancs t = helper ancs t
@@ -152,7 +154,7 @@ prune :: Machine -> Ancestors -> CTree -> Maybe CTree
 prune m1 ancs t = remove t  -- $ (tagRemovable m1 t)
   where remove (Node v xs Removable) = Nothing
         remove (Node v xs Keep) = 
-          if v `L.elem` (M.elems ancs) 
+          if v `L.elem` realancs 
           then Just (Node v xs Keep) -- if you're an ancestor but
                -- unmarked, dont prune below!
           else let ys = catMaybes $ L.map (\(a,x) -> case remove x of 
@@ -161,8 +163,20 @@ prune m1 ancs t = remove t  -- $ (tagRemovable m1 t)
                                           ) xs
                in Just (Node v ys Keep)
         remove n = Just n
+        realancs = L.map snd $ L.filter (\(v,v') -> not $ ivBisim v v') $ M.toList ancs
+                        
+ivBisim :: IValue -> IValue -> Bool                        
+ivBisim (i,(p,m)) (j,(p',m')) = (p==p') && (bisimilar m m')
+
+
+findTwo :: IValue -> [IValue] -> Maybe IValue
+findTwo v seen = 
+  case L.filter (equalConf False v) seen of
+    [] -> Nothing
+    [x] -> if (ivBisim v v) then (Just x) else Nothing
+    (x:xs) -> Just x
+   
           
-             
 
 equivRepeat :: Bool -> Machine -> Machine -> Bool
 equivRepeat debug m1 m2 = (helper (tinit m1, tinit m2) [])

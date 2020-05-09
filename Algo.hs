@@ -111,10 +111,13 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
 
                         
 splitTree :: Ancestors -> CTree -> [CTree]
-splitTree ancs t = helper ancs t
+splitTree ancs t = helper realancs t
   where helper acs (Node v xs f) 
           | v `L.elem` acs = [Node v xs f]
           | otherwise = concat $ L.map (\(x,c) -> helper acs c) xs
+        realancs = L.map snd $ L.filter (\(x,y) -> x `L.elem` allnodes) $ M.toList ancs
+        gnodes (Node v xs f) = (v:(concat $ L.map (gnodes . snd) xs))
+        allnodes = gnodes t
                         
 goodTree :: Ancestors -> CTree -> Bool
 goodTree ancs t@(Node v xs f) = 

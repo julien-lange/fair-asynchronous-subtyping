@@ -123,14 +123,17 @@ goodTree ancs t@(Node v xs f) =
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
         nodemachines (Node (s,(q,m)) xs f) = m:(concat $ L.map (nodemachines . snd) xs)
-        ctxts = maximum $ catMaybes $ L.map extractA (nodemachines t)
-
-
+        ctxt = maximum $ catMaybes $ L.map extractA (nodemachines t)
 
 related :: CtxtA -> Machine -> Machine -> Bool
-related ca m1 m2 = True
+related ca m1 m2 = (checkMap jm1 jm2) && (checkMap km1 km2)
   where (km1, jm1) = holesOfMachine ca m1 
         (km2, jm2) = holesOfMachine (nestA ca) m2
+        checkMap n1 n2 = L.and [ bisimilar v1 v2 | 
+                                 (k1,v1) <- M.toList n1, 
+                                 (k2,v2) <- M.toList n2,
+                                 k1==k2 ]                         
+        
 
 nestA :: CtxtA -> CtxtA
 nestA c = helper c

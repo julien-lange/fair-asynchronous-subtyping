@@ -63,9 +63,21 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
                  Nothing -> do putStrLn (show b)
                                when debug $ printDebugInfo m1 m2 t [] ancs
                  Just t' -> do let ts = splitTree ancs t'
-                               putStrLn (show $ b && (L.all (goodTree m1 ancs) ts))
+                               putStrLn (show $ b && (L.all (goodTree bound m1 ancs) ts))
                                when debug $ printDebugInfo m1 m2 t ts ancs
-     
+
+subCheck :: Int -> Machine -> Machine -> Bool
+subCheck bound m1 m2 = 
+  case buildTree bound False m1 m2 of 
+    Nothing -> False
+    Just (b',(to,ancs)) -> 
+      let t = tagRemovable m1 to 
+          b = (isControllable m2) && b'
+      in case prune m1 ancs t of
+          Nothing -> b
+          Just t' -> let ts = splitTree ancs t'
+                     in b && (L.all (goodTree bound m1 ancs) ts)
+
      
 printDebugInfo :: Machine -> Machine -> CTree -> [CTree] -> Ancestors -> IO ()
 printDebugInfo m1 m2 t ts ancs = 
@@ -116,28 +128,37 @@ splitTree ancs t = helper realancs t
         gnodes (Node v xs f) = (v:(concat $ L.map (gnodes . snd) xs))
         allnodes = gnodes t
                         
-goodTree :: Machine -> Ancestors -> CTree -> Bool
-goodTree m1 ancs t@(Node v xs f) = -- L.all checkLeaf $ leaves t
-                                   L.all (\n -> equalConf False n v) $ L.intersect (leaves t) descendants
+goodTree :: Int -> Machine -> Ancestors -> CTree -> Bool
+goodTree bound m1 ancs t@(Node v xs f) = L.all checkLeaf $ leaves t            
   where descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
         nodemachines (Node (s,(q,m)) xs f) = m:(concat $ L.map (nodemachines . snd) xs)
         ctxt = maximum $ catMaybes $ L.map extractA (nodemachines t)
-        checkLeaf n = case M.lookup n ancs of
-          Nothing -> True -- error $ "Node "++(show n)++" has no ancestor!"
+        checkLeaf n@(s,(q,m)) = case M.lookup n ancs of
+          Nothing -> (isFinalConf m1 (q,m))
           Just a -> checkRel n a
         checkRel (s,(q,m)) (s',(q',m')) = 
           (q == q')
           &&
           (
+            (isFinalConf m1 (q,m))            
+            ||
             (bisimilar m m')
             ||
-            (related ctxt m m')
+            (related ctxt m' m)
             ||
-            (related ctxt m' m)            
+            ( (related ctxt m m')
+              &&  
+              (subCheck bound (cleanUp $ updateInit q m1) m)
+            )
             ||
-            (isFinalConf m1 (q,m))
+            (
+              let (km,jm) = holesOfMachine ctxt m
+              in ((M.size jm) == 0)
+                 &&
+                 (subCheck bound (cleanUp $ updateInit q m1) m)
+            )
           )
 
 related :: CtxtA -> Machine -> Machine -> Bool

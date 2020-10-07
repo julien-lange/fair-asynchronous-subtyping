@@ -35,6 +35,10 @@ data CTree = Node
              , status :: NType
              }
            deriving (Show, Eq)
+                    
+                    
+data CtxtA = JHole Int | KHole Int | CtxtA [(Label, CtxtA)]
+           deriving (Show, Eq)
 
 data NType = Increase | Decrease | 
              Seen | Interm | Bound | Removable |
@@ -82,16 +86,10 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
 
   where helper :: Int -> IValue -> [(Label, IValue)] -> Maybe (Bool, (CTree, Ancestors))
         helper b v seen 
-          | b == 0 = Nothing -- Just (Nothing , ((Node v [] Bound),
-                     -- M.empty))
+          | b == 0 = Nothing
           | otherwise = case findTwo v (L.map snd seen) of
-            -- increase
             Just anc -> Just (True, ((Node v [] Increase), M.singleton v anc))
-            -- Nothing -> case find (\x -> equalConf debug x v) (L.map snd seen) of
-            --   -- decrease
-            --   Just anc -> Just (True, ((Node v [] Decrease), M.singleton v anc))
             Nothing -> case oneStep debug m1 (snd v) of
-                -- continue
                 Just ys -> continuation b v (nextconfs ys (fst v)) seen
                 Nothing -> Just (False, ((Node v [] Interm), M.empty))
               
@@ -101,7 +99,6 @@ buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) []
         continuation :: Int -> IValue -> [(Label, IValue)] -> [(Label, IValue)] -> Maybe (Bool, (CTree, Ancestors))
         continuation b v xs seen = case sequencePair $ L.map (\(a,x) -> (a, helper (b-1) x ((a,v):seen))) xs of
           Nothing -> Nothing
-          -- ys  :: (Label, (Bool, (CTree, Ancestors)))
           Just ys -> let zs = L.map (\(l,(b,(t,ancs))) -> (l,t)) ys 
                          mps = L.map (\(l,(b,(t,ancs))) -> ancs) ys
                          res = and $ L.map (\(l,(b,(t,ancs))) -> b) ys
@@ -125,6 +122,64 @@ goodTree ancs t@(Node v xs f) =
   where descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
+        nodemachines (Node (s,(q,m)) xs f) = m:(concat $ L.map (nodemachines . snd) xs)
+        ctxts = maximum $ catMaybes $ L.map extractA (nodemachines t)
+
+
+
+related :: CtxtA -> Machine -> Machine -> Bool
+related ca m1 m2 = True
+  where (km1, jm1) = holesOfMachine ca m1 
+        (km2, jm2) = holesOfMachine (nestA ca) m2
+
+nestA :: CtxtA -> CtxtA
+nestA c = helper c
+  where helper (KHole i) = KHole i
+        helper (JHole i) = c
+        helper (CtxtA xs) = CtxtA $ L.map (\x -> (fst x, helper . snd $ x )) xs
+                    
+holesOfMachine :: CtxtA -> Machine -> (Map Int Machine, Map Int Machine)
+holesOfMachine ca m1 = (kholes ca m1, jholes ca m1)
+  where kholes (KHole i) m = M.singleton i m
+        kholes (JHole i) m = M.empty
+        kholes (CtxtA xs) m = 
+          let mmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==(tinit m)) $ transitions m   
+              next = [(cb, cleanUp $ updateInit y m) |
+                      (a,cb) <- xs,
+                      (b,y) <- mmoves,
+                      b==a]                      
+          in M.unions $ L.map (\x -> kholes (fst x) (snd x)) next
+             
+        jholes (JHole i) m = M.singleton i m
+        jholes (KHole i) m = M.empty
+        jholes (CtxtA xs) m = 
+          let mmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==(tinit m)) $ transitions m   
+              next = [(cb, cleanUp $ updateInit y m) |
+                      (a,cb) <- xs,
+                      (b,y) <- mmoves,
+                      b==a]                      
+          in M.unions $ L.map (\x -> jholes (fst x) (snd x)) next
+           
+
+           
+depthCtxtA :: CtxtA -> Int
+depthCtxtA (JHole _) = 1
+depthCtxtA (KHole _) = 1
+depthCtxtA (CtxtA xs) = maximum $ L.map (depthCtxtA . snd) xs
+
+compareCtxtA :: CtxtA -> CtxtA -> Ordering
+compareCtxtA c1 c2 = 
+  let dp = compare (depthCtxtA c1) (depthCtxtA c2)
+  in if dp /= EQ
+     then dp
+     else helper c1 c2 
+       where helper (JHole _) _ = LT
+             helper (KHole _) _ = LT
+             helper (CtxtA xs) (CtxtA ys) = compare (length xs) (length ys)
+
+instance Ord CtxtA where
+  compare = compareCtxtA
+
 
 sequencePair :: [(a, Maybe b)] -> Maybe [(a,b)]
 sequencePair [] = Just [] 
@@ -179,7 +234,8 @@ findTwo v seen =
     [x] -> if (ivBisim v v) then (Just x) else Nothing
     (x:xs) -> Just x
    
-          
+
+
 
 equivRepeat :: Bool -> Machine -> Machine -> Bool
 equivRepeat debug m1 m2 = (helper (tinit m1, tinit m2) [])
@@ -191,8 +247,6 @@ equivRepeat debug m1 m2 = (helper (tinit m1, tinit m2) [])
             (              
               (nonempty p)
               &&
-              -- (nonempty q)
-              -- &&
               ((ssucc . removess $ p) == (removess q))
               &&
               (
@@ -221,8 +275,41 @@ unpeel [] = []
 osucc :: State -> State
 osucc s = "s"++s
 
+
+clevel :: State -> Int
+clevel xs = L.length $ L.filter ((==)'c') xs
+
+slevel :: State -> Int
+slevel xs = L.length $ L.filter ((==)'s') xs
+
+bornid :: State -> Int
+bornid xs = read (L.filter (\x -> x/='s' && x/='c') xs) :: Int
+
+
+extractA :: Machine -> Maybe CtxtA
+extractA m = helper (tinit m)
+  where helper q
+          | (clevel q) > 1 = let k = clevel q
+                             in Just $ CtxtA $ L.map (\(x,y) -> (x, build y k)) $ successors m q
+          | otherwise = Nothing
+        build q k
+          | (clevel q) == k = CtxtA $ L.map (\(x,y) -> (x, build y k)) $ successors m q 
+          | (clevel q) < k = 
+            if (slevel q) == k
+            then KHole (bornid q)
+            else JHole (bornid q)
+
 isFinalConf :: Machine -> Value -> Bool
 isFinalConf m1 (p, m) = (isFinal m1 p) && (isFinal m (tinit m))
+
+
+-- extractA :: Machine -> Maybe (CtxtA, [Int], [Int])
+-- extractA m = helper (tinit m) []
+--   where helper q seen 
+--           | q `L.elem` seen = Nothing
+--           | nonempty q = 
+--             let qmoves = successors m q
+--           | otherwise = Nothing
           
 
 inControllableBarb :: Machine -> State -> Set Message

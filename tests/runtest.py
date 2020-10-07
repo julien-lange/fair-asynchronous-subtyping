@@ -14,7 +14,7 @@ class bcolors:
 
 alltot = 0
 allfail = 0
-testfolder = "./tests/"
+testfolder = "./"
 positive = "./positive.csv"
 negative= "./negative.csv"
 tool = "../Checker"

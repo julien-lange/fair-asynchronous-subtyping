@@ -57,13 +57,13 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
           Nothing -> putStrLn "Maybe"
           Just (b',(to,ancs)) -> 
             let t = tagRemovable m1 to 
-                b = (isControllable m2) || b'
+                b = (isControllable m2) && b'
             in
             do case prune m1 ancs t of
                  Nothing -> do putStrLn (show b)
                                when debug $ printDebugInfo m1 m2 t [] ancs
                  Just t' -> do let ts = splitTree ancs t'
-                               putStrLn (show $ b && (L.all (goodTree ancs) ts))
+                               putStrLn (show $ b && (L.all (goodTree m1 ancs) ts))
                                when debug $ printDebugInfo m1 m2 t ts ancs
      
      
@@ -116,14 +116,29 @@ splitTree ancs t = helper realancs t
         gnodes (Node v xs f) = (v:(concat $ L.map (gnodes . snd) xs))
         allnodes = gnodes t
                         
-goodTree :: Ancestors -> CTree -> Bool
-goodTree ancs t@(Node v xs f) = 
-  L.all (\n -> equalConf False n v) $ L.intersect (leaves t) descendants
+goodTree :: Machine -> Ancestors -> CTree -> Bool
+goodTree m1 ancs t@(Node v xs f) = -- L.all checkLeaf $ leaves t
+                                   L.all (\n -> equalConf False n v) $ L.intersect (leaves t) descendants
   where descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
         nodemachines (Node (s,(q,m)) xs f) = m:(concat $ L.map (nodemachines . snd) xs)
         ctxt = maximum $ catMaybes $ L.map extractA (nodemachines t)
+        checkLeaf n = case M.lookup n ancs of
+          Nothing -> True -- error $ "Node "++(show n)++" has no ancestor!"
+          Just a -> checkRel n a
+        checkRel (s,(q,m)) (s',(q',m')) = 
+          (q == q')
+          &&
+          (
+            (bisimilar m m')
+            ||
+            (related ctxt m m')
+            ||
+            (related ctxt m' m)            
+            ||
+            (isFinalConf m1 (q,m))
+          )
 
 related :: CtxtA -> Machine -> Machine -> Bool
 related ca m1 m2 = (checkMap jm1 jm2) && (checkMap km1 km2)
@@ -132,7 +147,7 @@ related ca m1 m2 = (checkMap jm1 jm2) && (checkMap km1 km2)
         checkMap n1 n2 = L.and [ bisimilar v1 v2 | 
                                  (k1,v1) <- M.toList n1, 
                                  (k2,v2) <- M.toList n2,
-                                 k1==k2 ]                         
+                                 k1==k2 ]
         
 
 nestA :: CtxtA -> CtxtA

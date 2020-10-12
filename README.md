@@ -10,8 +10,8 @@ You will need [ghc](https://www.haskell.org/platform/) and [GraphViz (dot)](http
 
 Depending on your setup, you might need to install extra Haskell
 packages (GHC's complaints will help you figure these out and you can
-install them with `cabal`). For instance, you will need `cmdargs`
-which you can install with `cabal install cmdargs`.
+install them with `cabal`). For instance, you will need `cmdargs` and `parsec`
+which you can install with `cabal install cmdargs parsec --lib`.
 
 
 ## Compiling and running the tool

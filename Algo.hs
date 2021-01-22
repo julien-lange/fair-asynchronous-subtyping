@@ -471,7 +471,7 @@ printAncestorEdge map (s',t') =
   let s = (Tmp, s')
       t = (Tmp, t')
   in  (printNodeId map s)++" -> "++(printNodeId map t)
-      ++" [style=filled,color=red,fontcolor=blue,lhead=cluster_conf"++(printNodeId map t)
+      ++" [style=filled,color=blue,lhead=cluster_conf"++(printNodeId map t)
       ++", ltail=cluster_conf"++(printNodeId map s)
       ++", minlen=3, style=dashed];"
 

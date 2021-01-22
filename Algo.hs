@@ -462,7 +462,7 @@ mkGraph (Node v xs tag) = ((tag, v), helper (tag, v) xs)
 
 printEdge :: NodeMap -> Edge -> String
 printEdge map (s,(l,t)) = (printNodeId map s)++" -> "++(printNodeId map t)
-                          ++"[lhead=cluster_conf"++(printNodeId map t)
+                          ++"[style=filled,color=red,fontcolor=red,lhead=cluster_conf"++(printNodeId map t)
                           ++", ltail=cluster_conf"++(printNodeId map s)
                           ++", label=\""++(printEdgeLabel l)++"\", minlen=3];"
 
@@ -471,7 +471,7 @@ printAncestorEdge map (s',t') =
   let s = (Tmp, s')
       t = (Tmp, t')
   in  (printNodeId map s)++" -> "++(printNodeId map t)
-      ++" [lhead=cluster_conf"++(printNodeId map t)
+      ++" [style=filled,color=red,fontcolor=blue,lhead=cluster_conf"++(printNodeId map t)
       ++", ltail=cluster_conf"++(printNodeId map s)
       ++", minlen=3, style=dashed];"
 

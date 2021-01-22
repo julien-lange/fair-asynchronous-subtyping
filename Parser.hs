@@ -268,7 +268,19 @@ substituteList var t (Act dir s t') = Act dir s (substituteList var t t')
 
 -- Lexer & Parser
 lexer :: T.TokenParser ()
-lexer = T.makeTokenParser emptyDef
+lexer = T.makeTokenParser  languageDef
+
+languageDef =
+  emptyDef { T.commentStart    = "/*"
+           , T.commentEnd      = "*/"
+           , T.commentLine     = "--"
+           , T.identStart      = alphaNum
+           , T.identLetter     = alphaNum
+           , T.reservedNames   = []
+           , T.reservedOpNames = ["!", "?", "+", "&"]
+           , T.caseSensitive = True
+           }
+
 
 whiteSpace= T.whiteSpace lexer
 lexeme    = T.lexeme lexer
@@ -305,18 +317,6 @@ ltparser = do { symbol "!"
            do { var <-  identifier
               ; return $ Var var
               }    
-           <|> 
-           do { symbol "&["
-              ; list <- sepBy1 ltparser (char ',' <* spaces)
-              ; symbol "]"
-              ; return $ Choice Receive list
-              } 
-           <|> 
-           do { symbol "+{"
-              ; list <- sepBy1 ltparser (char ',' <* spaces)
-              ; symbol "}"
-              ; return $ Choice Send list
-              }
            <|> -- REDUNDANCY TO MAKE IT EASIER TO TYPE TYPES
            do { symbol "{"
               ; list <- sepBy1 ltparser (char ',' <* spaces)
@@ -328,8 +328,25 @@ ltparser = do { symbol "!"
               ; list <- sepBy1 ltparser (char ',' <* spaces)
               ; symbol "]"
               ; return $ Choice (if (isIntChoice list) then Send else Receive) list
-              } 
-           
+              }
+           <|> 
+           do { dir <- (symbol "+" <|> symbol "&")
+              ; choice <- choiceParser
+              ; return choice
+              }
+
+choiceParser =
+  do { symbol "["
+     ; list <- sepBy1 ltparser (char ',' <* spaces)
+     ; symbol "]"
+     ; return $ Choice (if (isIntChoice list) then Send else Receive) list
+     }
+  <|> 
+  do { symbol "{"
+     ; list <- sepBy1 ltparser (char ',' <* spaces)
+     ; symbol "}"
+     ; return $ Choice (if (isIntChoice list) then Send else Receive) list
+     }
 mainparser :: Parser LocalType
 mainparser =  whiteSpace >> ltparser <* eof
 

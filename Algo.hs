@@ -386,9 +386,11 @@ oneStep debug m1 v@(p,m)
         in Just next
   | (isOutput m1 p) && not (isOutput m (tinit m)) =
           (if debug then (trace ("Out: "++(show (p,(tinit m)))++"\n"++(printMachine m)) ) else (\x  -> x  )) $ 
-          let psmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==p) $ transitions m1              
+          let psmoves = L.map snd $ L.filter (\(x,(y,z)) -> x==p) $ transitions m1
+              -- unfold(S)
               qstates = reachableSendStates (tinit m) m
               newmachines = L.map (\a -> ((Send, a), replaceInMachine m (Send, a) qstates)) $ S.toList (outBarb m1 p)
+              -- end of unfold(S)
               next = L.nub $ [(a, (x, updateInit (ssucc (tinit m)) m'))| (a,x) <- psmoves, (b,m') <- newmachines, a==b] 
           in if (not $ L.null qstates) 
                 &&

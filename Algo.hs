@@ -57,7 +57,7 @@ checkingAlgorithm bound dual debug nomin t1 t2 =
           Nothing -> putStrLn "Maybe"
           Just (b',(to,ancs)) -> 
             let t = tagRemovable m1 to 
-                b = (isControllable m2) && b'
+                b = (not $ isControllable m2) ||  b'
             in
             do case prune m1 ancs t of
                  Nothing -> do putStrLn (show b)
@@ -72,7 +72,7 @@ subCheck bound m1 m2 =
     Nothing -> False
     Just (b',(to,ancs)) -> 
       let t = tagRemovable m1 to 
-          b = (isControllable m2) && b'
+          b = (not $ isControllable m2) ||  b'
       in case prune m1 ancs t of
           Nothing -> b
           Just t' -> let ts = splitTree ancs t'

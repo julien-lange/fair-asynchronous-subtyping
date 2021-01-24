@@ -348,6 +348,7 @@ isControllable m = helper [] (tinit m)
           | isInput m q = or $ next seen q
           | isOutput m q = let ret = next seen q  in (not $ L.null ret) && (and ret)
         next seen q =  L.map (\x -> helper ((q,x):seen) (snd x)) (L.filter (\x -> not ((q,x) `L.elem` seen)) $ successors m q)
+
         
 isStrongControllable :: Machine -> Bool
 isStrongControllable m = helper [] (tinit m)

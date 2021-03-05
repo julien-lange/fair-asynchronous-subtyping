@@ -344,8 +344,8 @@ isControllable :: Machine -> Bool
 isControllable om = helper [] (tinit om) om
   where helper seen q m
           | isFinal m q = True
-          | L.null (unseenSuccessors seen q m) = recursion seen q m
           | isInput m q = or $ next seen q m
+          | L.null (unseenSuccessors seen q m) = recursion seen q m
           | isOutput m q = let ret = next seen q m  in (not $ L.null ret) && (and ret)
         
         next seen q m=  L.map (\x -> helper ((q,x):seen) (snd x) m) (unseenSuccessors seen q m)

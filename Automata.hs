@@ -340,32 +340,62 @@ ampersand dir m q = not $ selfloop q q []
                         in L.or $ L.map (\x -> selfloop x trg (q:visited)) next
 
 
+-- isControllable :: Machine -> Bool
+-- isControllable om = helper [] (tinit om) om
+--   where helper seen q m
+--           | isFinal m q = True
+--           | isInput m q = or $ next seen q m
+--           | L.null (unseenSuccessors seen q m) = recursion seen q m
+--           | isOutput m q = let ret = next seen q m  in (not $ L.null ret) && (and ret)
+        
+--         next seen q m=  L.map (\x -> helper ((q,x):seen) (snd x) m) (unseenSuccessors seen q m)
+        
+--         reachableEnd seen q m
+--           | isFinal m q = True
+--           | L.null (unseenSuccessors seen q m) =  False
+--           | otherwise = or $ L.map (\x -> reachableEnd ((q,x):seen) (snd x) m) $ unseenSuccessors seen q m
+        
+--         unseenSuccessors seen q m = L.filter (\x -> not ((q,x) `L.elem` seen)) $ successors m q
+        
+--         recursion seen q m
+--           | reachableEnd [] q m = helper [] q (addFinal m (head seen)) 
+--           | otherwise = False
+        
+--         addFinal m t@(s,(l,e)) = Machine { states = states m ++ ["Rec"]
+--                                          , tinit = tinit m
+--                                          , transitions = [(s,(l,"Rec"))] ++ L.filter(\x -> not $ x == t) (transitions m)
+--                                          , accepts = accepts m ++ ["Rec"]
+--                                          }
+
 isControllable :: Machine -> Bool
-isControllable om = helper [] (tinit om) om
-  where helper seen q m
+isControllable ma = any (\x -> helper x [] (tinit x)) (singleExtChoices ma)
+  where helper m seen q
+          | q `L.elem` seen = endReachable m q
           | isFinal m q = True
-          | isInput m q = or $ next seen q m
-          | L.null (unseenSuccessors seen q m) = recursion seen q m
-          | isOutput m q = let ret = next seen q m  in (not $ L.null ret) && (and ret)
-        
-        next seen q m=  L.map (\x -> helper ((q,x):seen) (snd x) m) (unseenSuccessors seen q m)
-        
-        reachableEnd seen q m
+          | isInput m q = case successors m q of
+                            [(l,t)] -> helper m (q:seen) t
+                            ys -> error (show (q, ys))
+          | isOutput m q = all (\x -> helper m (q:seen) (snd x)) (successors m q)
+          
+
+endReachable :: Machine -> State -> Bool
+endReachable m q = helper [] q
+  where helper seen q
+          | q `L.elem` seen = False
           | isFinal m q = True
-          | L.null (unseenSuccessors seen q m) =  False
-          | otherwise = or $ L.map (\x -> reachableEnd ((q,x):seen) (snd x) m) $ unseenSuccessors seen q m
-        
-        unseenSuccessors seen q m = L.filter (\x -> not ((q,x) `L.elem` seen)) $ successors m q
-        
-        recursion seen q m
-          | reachableEnd [] q m = helper [] q (addFinal m (head seen)) 
-          | otherwise = False
-        
-        addFinal m t@(s,(l,e)) = Machine { states = states m ++ ["Rec"]
-                                         , tinit = tinit m
-                                         , transitions = [(s,(l,"Rec"))] ++ L.filter(\x -> not $ x == t) (transitions m)
-                                         , accepts = accepts m ++ ["Rec"]
-                                         }
+          | otherwise = any (\x -> helper (q:seen) (snd x)) (successors m q)
+
+singleExtChoices :: Machine -> [Machine]
+singleExtChoices m = mlist
+  where mlist = L.map (\x -> Machine { states = states m
+                                     , tinit = tinit m
+                                     , transitions = x++sndtrans
+                                     , accepts = accepts m
+                                     }
+                      ) combo
+        sndtrans = ftrans Send
+        ftrans dir = L.filter (\(s,((d,l),t)) -> d == dir) (transitions m)
+        combo = sequence $ L.groupBy (\x y -> (fst x) == (fst y)) (ftrans Receive)
         
 isStrongControllable :: Machine -> Bool
 isStrongControllable m = helper [] (tinit m)

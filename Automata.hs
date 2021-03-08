@@ -4,6 +4,8 @@ import Data.List as L
 import Data.Set as S
 import Data.Map as M
 import Data.Char (toUpper)
+import Data.List (sortBy)
+import Data.Ord (comparing)
 
 -- import Data.Hashable
 
@@ -395,7 +397,7 @@ singleExtChoices m = mlist
                       ) combo
         sndtrans = ftrans Send
         ftrans dir = L.filter (\(s,((d,l),t)) -> d == dir) (transitions m)
-        combo = sequence $ L.groupBy (\x y -> (fst x) == (fst y)) (ftrans Receive)
+        combo = sequence $ L.groupBy (\x y -> (fst x) == (fst y)) (sortBy (comparing fst) (ftrans Receive))
         
 isStrongControllable :: Machine -> Bool
 isStrongControllable m = helper [] (tinit m)

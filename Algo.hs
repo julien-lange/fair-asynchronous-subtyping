@@ -84,14 +84,14 @@ printDebugInfo m1 m2 t ts ancs =
   do 
     putStrLn $ "Candidate sub-type controllable: "++(show $ isControllable m1)
     putStrLn $ "Candidate super-type controllable: "++(show $ isControllable m2)
-    putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
-    putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
+    -- putStrLn $ "Candidate sub-type strong controllable: "++(show $ isStrongControllable m1)
+    -- putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
   
     writeToFile "sim_tree.dot" (printTrees ancs [t])
-    mkPicture ("sim_tree.dot") ("sim_tree.svg")
+    mkPicture ("sim_tree.dot") ("sim_tree.png")
   
     writeToFile "witness_trees.dot" (printTrees ancs ts)
-    mkPicture ("witness_trees.dot") ("witness_trees.svg")
+    mkPicture ("witness_trees.dot") ("witness_trees.png")
      
 buildTree :: Int -> Bool -> Machine -> Machine -> Maybe (Bool, (CTree, Ancestors))
 buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) [] 

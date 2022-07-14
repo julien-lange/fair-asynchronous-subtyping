@@ -71,13 +71,13 @@ printMachineBody m =
 
 machine2file :: Machine -> String -> IO ()
 machine2file m f = do writeToFile (f++"_cfsm.dot") (printMachine m)
-                      mkPicture (f++"_cfsm.dot") (f++"_cfsm.svg")
+                      mkPicture (f++"_cfsm.dot") (f++"_cfsm.png")
 
 mkPicture :: FilePath -> FilePath -> IO ()
 mkPicture file output =
   let cmd = "dot -Tpng "++file++" -o "++output
   in do -- out <- readProcess "bash" ["-c", cmd] []
-        out <- readProcess "dot" ["-Tsvg",file,"-o",output] []
+        out <- readProcess "dot" ["-Tpng",file,"-o",output] []
         return ()
 
 genState :: String -> (Map String State) -> LocalType -> State

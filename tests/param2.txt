@@ -1,0 +1,5 @@
+!q1;
+rec x . [?r1; x,
+         ?e1; !q2; 
+               rec y . [?r2; y, ?e2; end]
+]

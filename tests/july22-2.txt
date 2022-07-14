@@ -1,0 +1,7 @@
+rec x . [!q; [!q; rec y . [?r; y, ?e; rec z . [?r;z, ?e; x ] ]  ,
+              !bye; rec w . [?r;w, ?e;end] ],
+         !bye; end ]
+
+
+
+

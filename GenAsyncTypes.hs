@@ -22,17 +22,17 @@ genTop i j = RecDef "X" (genTopRcv i j)
 -- [ ?tc1, ?tc2, ?tc3, ... ?done] 
 genTopRcv :: Int -> Int -> Tree
 genTopRcv i 0 =
-  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopSnd i 0))[0..i]
+  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopSnd i 0))[0..i-1]
   in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf i)]
 genTopRcv i j =
-  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopRcv i (j-1)))[0..i]
+  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopRcv i (j-1)))[0..i-1]
   in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf i)]
 
 
 -- 
 genTopSnd :: Int -> Int -> Tree
 genTopSnd i j =
-  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i]
+  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i-1]
   in Choice $ tms ++ [((Send, "over"), genRcvLeaf i)]
 
 
@@ -45,7 +45,7 @@ genBot i j = RecDef "X" (genBotSnd i j)
 
 genBotSnd :: Int -> Int -> Tree
 genBotSnd i j = 
-  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i]
+  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i-1]
   in Choice $ tms ++ [((Send, "over"), genRcvLeaf i)]
 
 
@@ -59,7 +59,7 @@ genBotSnd i j =
 --         ]
 genRcvLeaf :: Int -> Tree
 genRcvLeaf i =
-  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), (RecVar "Y")))[0..i]
+  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), (RecVar "Y")))[0..i-1]
   in RecDef "Y" $ Choice $ tcs ++ [((Rcv, "done"), End)]
 
 
@@ -69,7 +69,7 @@ genRcvLeaf i =
 --         ]
 genSendLeaf :: Int -> Tree
 genSendLeaf i =
-  let tcs =   map (\x -> ((Send, "tm"++(show x)), (RecVar "Z")))[0..i]
+  let tcs =   map (\x -> ((Send, "tm"++(show x)), (RecVar "Z")))[0..i-1]
   in RecDef "Z" $ Choice $ tcs ++ [((Send, "over"), End)]
 
 

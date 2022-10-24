@@ -94,6 +94,8 @@ main = do
                       then 2*(typeDepth supans)
                       else bound pargs
               start <- getCurrentTime
+              -- True = not minimise
+              -- False = minimise
               checkingAlgorithm b (dualflag pargs) (debug pargs) True subans supans
               end <- getCurrentTime
               putStrLn $ (show $ diffUTCTime end start)

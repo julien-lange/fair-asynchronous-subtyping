@@ -15,24 +15,24 @@ data Tree = Choice [((Dir, String), Tree)]
   deriving (Show, Eq, Ord, Read)
 
 
-genTop :: Int -> Int -> Tree
-genTop i j = RecDef "X" (genTopRcv i j)
+genTop :: Int -> Int -> Int -> Tree
+genTop i j k = RecDef "X" (genTopRcv i j k)
 
 
 -- [ ?tc1, ?tc2, ?tc3, ... ?done] 
-genTopRcv :: Int -> Int -> Tree
-genTopRcv i 0 =
-  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopSnd i 0))[0..i-1]
-  in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf i)]
-genTopRcv i j =
-  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopRcv i (j-1)))[0..i-1]
-  in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf i)]
+genTopRcv :: Int -> Int -> Int -> Tree
+genTopRcv i 0 k =
+  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopSnd i 0 k))[0..i-1]
+  in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf k)]
+genTopRcv i j k =
+  let tcs =   map (\x -> ((Rcv, "tc"++(show x)), genTopRcv i (j-1) k))[0..i-1]
+  in Choice $ tcs ++ [((Rcv, "done"), genSendLeaf k)]
 
 
 -- 
-genTopSnd :: Int -> Int -> Tree
-genTopSnd i j =
-  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i-1]
+genTopSnd :: Int -> Int -> Int -> Tree
+genTopSnd i j k =
+  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..k-1]
   in Choice $ tms ++ [((Send, "over"), genRcvLeaf i)]
 
 
@@ -40,12 +40,12 @@ genTopSnd i j =
 -- -----------------------------------------------------------------
 
 
-genBot :: Int -> Int -> Tree
-genBot i j = RecDef "X" (genBotSnd i j)
+genBot :: Int -> Int -> Int -> Tree
+genBot i j k = RecDef "X" (genBotSnd i j k)
 
-genBotSnd :: Int -> Int -> Tree
-genBotSnd i j = 
-  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..i-1]
+genBotSnd :: Int -> Int -> Int -> Tree
+genBotSnd i j k = 
+  let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..k-1]
   in Choice $ tms ++ [((Send, "over"), genRcvLeaf i)]
 
 
@@ -68,8 +68,8 @@ genRcvLeaf i =
 --          !over ; end
 --         ]
 genSendLeaf :: Int -> Tree
-genSendLeaf i =
-  let tcs =   map (\x -> ((Send, "tm"++(show x)), (RecVar "Z")))[0..i-1]
+genSendLeaf k =
+  let tcs =   map (\x -> ((Send, "tm"++(show x)), (RecVar "Z")))[0..k-1]
   in RecDef "Z" $ Choice $ tcs ++ [((Send, "over"), End)]
 
 
@@ -88,32 +88,33 @@ printTree End = "end"
 
 main :: IO ()
 main = do  args <- getArgs
-           if ((length args) /= 2)
-             then do putStrLn "Usage: GenAsyncTypes <int> <int> [flag]"
+           if ((length args) /= 3)
+             then do putStrLn "Usage: GenAsyncTypes <rcv-width> <rcv-depth> <snd-width> "
                      return ()
              else do let x = read (args!!0) :: Int
                          y = read (args!!1) :: Int
+                         k = read (args!!2) :: Int
                          f = if length args > 1
                              then args!!1
                              else ""
                          
-                     runChecker y x f
+                     runChecker y x k f
                      
 
-runChecker :: Int -> Int -> String -> IO ()
-runChecker y x flag =
-  let sup = printTree $ genTop x y
-      sub = printTree $ genBot x y
-      cmd = "./Checker -i "++flag++" '"++sub++"'  '"++sup++"'"
+runChecker :: Int -> Int -> Int -> String -> IO ()
+runChecker y x k flag =
+  let sup = printTree $ genTop x y k
+      sub = printTree $ genBot x y k
+      cmd = "./Checker t1.txt t2.txt"
   in do writeToFile "t1.txt" sub
         writeToFile "t2.txt" sup
-        -- putStrLn sub
-        -- putStrLn sup
-        -- start <- getCurrentTime
-        -- out <- readProcess "bash" ["-c", cmd] []
-        -- end <- getCurrentTime
-        -- putStrLn $ (show $ diffUTCTime end start)
-        -- print out
+        putStrLn sub
+        putStrLn sup
+        start <- getCurrentTime
+        out <- readProcess "bash" ["-c", cmd] []
+        end <- getCurrentTime
+        putStrLn $ (show $ diffUTCTime end start)
+        print out
         return ()
         
 

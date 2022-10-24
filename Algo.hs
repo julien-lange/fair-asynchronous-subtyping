@@ -88,10 +88,10 @@ printDebugInfo m1 m2 t ts ancs =
     -- putStrLn $ "Candidate super-type strong controllable: "++(show $ isStrongControllable m2)
   
     writeToFile "sim_tree.dot" (printTrees ancs [t])
-    mkPicture ("sim_tree.dot") ("sim_tree.png")
+    mkPicture ("sim_tree.dot") ("sim_tree.svg")
   
     writeToFile "witness_trees.dot" (printTrees ancs ts)
-    mkPicture ("witness_trees.dot") ("witness_trees.png")
+    mkPicture ("witness_trees.dot") ("witness_trees.svg")
      
 buildTree :: Int -> Bool -> Machine -> Machine -> Maybe (Bool, (CTree, Ancestors))
 buildTree bound debug m1 m2 = helper bound ("0", (tinit m1, m2)) [] 
@@ -127,10 +127,12 @@ splitTree ancs t = helper realancs t
         realancs = L.map snd $ L.filter (\(x,y) -> x `L.elem` allnodes) $ M.toList ancs
         gnodes (Node v xs f) = (v:(concat $ L.map (gnodes . snd) xs))
         allnodes = gnodes t
-                        
+
+
+-- bug is in there                   
 goodTree :: Int -> Machine -> Ancestors -> CTree -> Bool
 goodTree bound m1 ancs t@(Node v xs f) = L.all checkLeaf $ leaves t            
-  where descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
+  where -- descendants =  L.map fst $ L.filter (\((i,(s,m)),(j,(s',m'))) -> (not $ bisimilar m m')) $ M.toList ancs
         leaves (Node v [] f) = [v]
         leaves (Node v xs f) = concat $ L.map (leaves . snd) xs
         nodemachines (Node (s,(q,m)) xs f) = m:(concat $ L.map (nodemachines . snd) xs)
@@ -160,7 +162,7 @@ goodTree bound m1 ancs t@(Node v xs f) = L.all checkLeaf $ leaves t
                  (subCheck bound (cleanUp $ updateInit q m1) m)
             )
           )
-
+          
 related :: CtxtA -> Machine -> Machine -> Bool
 related ca m1 m2 = (checkMap jm1 jm2) && (checkMap km1 km2)
   where (km1, jm1) = holesOfMachine ca m1 
@@ -204,7 +206,7 @@ holesOfMachine ca m1 = (kholes ca m1, jholes ca m1)
 depthCtxtA :: CtxtA -> Int
 depthCtxtA (JHole _) = 1
 depthCtxtA (KHole _) = 1
-depthCtxtA (CtxtA xs) = maximum $ L.map (depthCtxtA . snd) xs
+depthCtxtA (CtxtA xs) =  1 + (maximum $ L.map (depthCtxtA . snd) xs)
 
 compareCtxtA :: CtxtA -> CtxtA -> Ordering
 compareCtxtA c1 c2 = 
@@ -263,7 +265,8 @@ prune m1 ancs t = remove t  -- $ (tagRemovable m1 t)
         realancs = L.map snd $ L.filter (\(v,v') -> not $ ivBisim v v') $ M.toList ancs
                         
 ivBisim :: IValue -> IValue -> Bool                        
-ivBisim (i,(p,m)) (j,(p',m')) = (p==p') && (bisimilar m m')
+ivBisim (i,(p,m)) (j,(p',m')) = (p==p') &&
+                                (bisimilar m m')
 
 
 findTwo :: IValue -> [IValue] -> Maybe IValue
@@ -331,6 +334,7 @@ extractA m = helper (tinit m)
           | (clevel q) > 1 = let k = clevel q
                              in Just $ CtxtA $ L.map (\(x,y) -> (x, build y k)) $ successors m q
           | otherwise = Nothing
+          
         build q k
           | (clevel q) == k = CtxtA $ L.map (\(x,y) -> (x, build y k)) $ successors m q 
           | (clevel q) < k = 
@@ -421,7 +425,7 @@ replaceInMachine m l qs = cleanUp $ Machine { states = nstates
         normalisedEdges xs =  L.map (\(s,(a,t)) -> (normalise s,(a, normalise t))) xs
         replaced = [(Right s1, (l1, Left t2)) | (s1,(l1,t1)) <- alltrans
                                               , (s2,(l2,t2)) <- alltrans
-                                              , t1==s2
+                                              , t1 == s2
                                               , s2 `elem` qs 
                                               , l2 == l
                                               , isReceiveLab l1
@@ -514,6 +518,10 @@ printEdgeLabel (Receive, msg) = "?"++(msg)
 
 printTag Removable = "R"
 printTag Keep = "K"
-printTag _ = "U"
-
-              
+-- printTag _ = "U"
+printTag Increase = "I"
+printTag Decrease = "D"
+printTag Seen = "S"
+printTag Interm = "I"
+printTag Bound = "B"
+printTag Tmp = "T"

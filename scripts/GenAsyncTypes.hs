@@ -110,11 +110,11 @@ runChecker y x k flag =
         writeToFile "t2.txt" sup
         putStrLn sub
         putStrLn sup
-        start <- getCurrentTime
-        out <- readProcess "bash" ["-c", cmd] []
-        end <- getCurrentTime
-        putStrLn $ (show $ diffUTCTime end start)
-        print out
+        -- start <- getCurrentTime
+        -- out <- readProcess "bash" ["-c", cmd] []
+        -- end <- getCurrentTime
+        -- putStrLn $ (show $ diffUTCTime end start)
+        -- print out
         return ()
         
 

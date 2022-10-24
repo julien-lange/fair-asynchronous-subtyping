@@ -45,26 +45,29 @@ data NType = Increase | Decrease |
              Tmp | Keep
            deriving (Show, Eq, Ord)
      
-checkingAlgorithm :: Int -> Bool -> Bool -> Bool -> LocalType -> LocalType -> IO ()
-checkingAlgorithm bound dual debug nomin t1 t2 =
+checkingAlgorithm :: Int -> Bool -> Bool -> Bool -> Bool -> LocalType -> LocalType -> IO ()
+checkingAlgorithm bound dual debug nomin info t1 t2 =
   let fm = if dual then dualMachine else id
-      (m1, m2) = (if dual then swap else id) $ (fm $type2Machine nomin "-" t1, fm $ type2Machine nomin "+" t2)
+      (m1, m2) = (if dual then swap else id) $ (fm $ type2Machine nomin "-" t1, fm $ type2Machine nomin "+" t2)
   in do when debug $
           do machine2file m1 "sub"
              machine2file m2 "sup"
              putStrLn $ "Bound: "++(show bound)
-        case buildTree bound debug m1 m2 of 
-          Nothing -> putStrLn "Maybe"
-          Just (b',(to,ancs)) -> 
-            let t = tagRemovable m1 to 
-                b = (not $ isControllable m2) ||  b'
-            in
-            do case prune m1 ancs t of
-                 Nothing -> do putStrLn (show b)
-                               when debug $ printDebugInfo m1 m2 t [] ancs
-                 Just t' -> do let ts = splitTree ancs t'
-                               putStrLn (show $ b && (L.all (goodTree bound m1 ancs) ts))
-                               when debug $ printDebugInfo m1 m2 t ts ancs
+        when info $
+          putStrLn $ "Size, " ++ (intercalate ", " $ L.map show $ (mSize m1)++(mSize m2))
+        when (not info) $
+          case buildTree bound debug m1 m2 of 
+            Nothing -> putStrLn "Maybe"
+            Just (b',(to,ancs)) -> 
+              let t = tagRemovable m1 to 
+                  b = (not $ isControllable m2) ||  b'
+              in
+                do case prune m1 ancs t of
+                     Nothing -> do putStrLn (show b)
+                                   when debug $ printDebugInfo m1 m2 t [] ancs
+                     Just t' -> do let ts = splitTree ancs t'
+                                   putStrLn (show $ b && (L.all (goodTree bound m1 ancs) ts))
+                                   when debug $ printDebugInfo m1 m2 t ts ancs
 
 subCheck :: Int -> Machine -> Machine -> Bool
 subCheck bound m1 m2 = 

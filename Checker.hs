@@ -44,6 +44,8 @@ data Subtyping = Subtyping
                  , debug :: Bool 
                  , bound :: Int
                  , dualflag :: Bool
+                 , minimise :: Bool
+                 , info :: Bool
                  }
                deriving (Data,Typeable,Show,Eq)
 submodes =  enum
@@ -65,6 +67,13 @@ subargs = Subtyping
  , dualflag = def 
               &= explicit &= name "dual"
               &= help "tests for dual(m1) > dual(m2)"
+ , minimise = def
+           &= explicit &= name "minimise"
+           &= help "minimise machines before applying algorithm"
+                         &= help "tests for dual(m1) > dual(m2)"
+ , info = def
+           &= explicit &= name "info"
+           &= help "print info only"
  }  &= help "Session type subtyping relations as model checking problems"
 
 
@@ -96,7 +105,7 @@ main = do
               start <- getCurrentTime
               -- True = not minimise
               -- False = minimise
-              checkingAlgorithm b (dualflag pargs) (debug pargs) True subans supans
+              checkingAlgorithm b (dualflag pargs) (debug pargs) (not $ minimise pargs) (info pargs) subans supans
               end <- getCurrentTime
               putStrLn $ (show $ diffUTCTime end start)
             --  return ()

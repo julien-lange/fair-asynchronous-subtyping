@@ -89,6 +89,8 @@ mkMessage :: String -> Message
 mkMessage s = s -- T.pack s
 
 
+mSize :: Machine -> [Int]
+mSize m = [length $ L.nub $ states m]++[length $ L.nub $ transitions m]
 
 
 stToUpper :: String -> String

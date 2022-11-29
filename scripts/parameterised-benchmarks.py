@@ -10,7 +10,7 @@ import csv
 
 
 # Number of iterations (> 1)
-maxiterations = 2
+maxiterations = 2 # 6
 
 logfile = "log-file-benchmarks.txt"
 tmpfile = "tmp-cfsm.txt"
@@ -19,6 +19,7 @@ tmpfile = "tmp-cfsm.txt"
 # OUTPUT FILE
 prefname = "parametrised-benchmarks"
 MIN = "--minimise"
+# MIN = ""
 
 
 # TIMEOUT (in seconds)
@@ -28,27 +29,30 @@ cmdtimeout = 300 #
 
 
 
-# def cleanup(): 
-#     subprocess.call(["killall","KMC"]
-#                     , stdout=subprocess.PIPE
-#                     , stderr=subprocess.PIPE)
+def cleanup(): 
+    subprocess.call(["killall","Checker"]
+                    , stdout=subprocess.PIPE
+                    , stderr=subprocess.PIPE)
 
 
 
 
-def runOverRange(sid,minx, maxx, gencmd):
+def runOverRange(sid,minx, maxx, gencmd, step):
     print("SID: "+sid)
     name = prefname+"_"+sid+"_"+str(minx)+"-"+str(maxx)+".csv"
     with open(name,"w") as out:    
         write = csv.writer(out) 
         with open(name+logfile, "wb") as log_file:
-            for x in range(minx,maxx):
+            for x in range(minx,maxx,step):
                         print("Test: ",str(x))
                         gcmd = gencmd(x)
                         gcmd.wait(timeout=cmdtimeout)                                                        
                         nstates = ""
                         ntrans = ""
-                        infocmd = subprocess.Popen(["../Checker","t1.txt","t2.txt", "--info", MIN], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        if len(MIN)> 0: 
+                            infocmd = subprocess.Popen(["../Checker","t1.txt","t2.txt", "--info", MIN], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        else:
+                            infocmd = subprocess.Popen(["../Checker","t1.txt","t2.txt", "--info"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         infocmd.wait(timeout=cmdtimeout)                                                        
                         for line in infocmd.stdout:
                             sp = line.decode("utf-8")
@@ -61,7 +65,16 @@ def runOverRange(sid,minx, maxx, gencmd):
                         for it in range(1,maxiterations):
                             print("Running Checker: ",str(x))
                             startt = time.time() # time in seconds
-                            kmccmd = subprocess.Popen(["/usr/bin/time","-l","../Checker","t1.txt","t2.txt", MIN], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            if len(MIN)> 0:                                
+                                kmccmd = subprocess.Popen(
+                                    ["/usr/bin/time","-l","../Checker","t1.txt","t2.txt", MIN]
+                                    , stdout=subprocess.PIPE
+                                    , stderr=subprocess.PIPE)
+                            else:
+                                kmccmd = subprocess.Popen(
+                                    ["/usr/bin/time","-l","../Checker","t1.txt","t2.txt"]
+                                    , stdout=subprocess.PIPE
+                                    , stderr=subprocess.PIPE)
                             try:
                                 kmccmd.wait(timeout=cmdtimeout)
                                 endt = time.time()
@@ -78,6 +91,7 @@ def runOverRange(sid,minx, maxx, gencmd):
                             except subprocess.TimeoutExpired:
                                 kmccmd.kill()
                                 kmccmd.wait()
+                                cleanup()
                                 print("/!\ Checker timedout, terminating these benchmarks")
                                 return
                         avg = sum(timings)/float(len(timings))
@@ -103,6 +117,6 @@ def moreSndWidths(x):
 
 
 
-runOverRange("B", 1, 50, moreRcvDepths)
-runOverRange("C", 1, 36, moreSndWidths)
-runOverRange("A", 1, 10, moreRcvWidths)
+#runOverRange("B", 1, 60, moreRcvDepths, 5)
+#runOverRange("C", 1, 60, moreSndWidths, 5)
+runOverRange("A", 1, 20, moreRcvWidths, 1)

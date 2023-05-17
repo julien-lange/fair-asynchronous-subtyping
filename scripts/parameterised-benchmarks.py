@@ -43,7 +43,7 @@ def runOverRange(sid,minx, maxx, gencmd, step):
     with open(name,"w") as out:    
         write = csv.writer(out) 
         with open(name+logfile, "wb") as log_file:
-            for x in range(minx,maxx,step):
+            for x in range(minx,maxx+step,step):
                         print("Test: ",str(x))
                         gcmd = gencmd(x)
                         gcmd.wait(timeout=cmdtimeout)                                                        

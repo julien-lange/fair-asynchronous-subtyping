@@ -10,7 +10,7 @@ import os
 from matplotlib.ticker import ScalarFormatter 
 from scipy.optimize import curve_fit
 
-filetype = ".jpeg"
+filetype = ".eps"
 ticksfontsize = 12
 axisfontsize = 15
 legentfontsize = 15
@@ -22,7 +22,7 @@ def fitfunc(x, a, b, c):
 
 
 def mkFitLegend(ca, cb, cc):
-    return (r'$F(x)\approx%5.5f + %5.5f * %5.4f^x$' % (cc, ca, cb))
+    return (r'$F(x)\approx%5.3f + %5.3f * %5.3f^x$' % (cc, ca, cb))
 
 
 def mkPlot(bfile, outpath):
@@ -38,7 +38,7 @@ def mkPlot(bfile, outpath):
     final = tab[:, stab]
     tr, tm, tk, tp = final
 
-    plt.figure(figsize=(9, 12))
+    plt.figure(figsize=(9, 9))
     fig, ax1 = plt.subplots()
 
     linx = np.array(tr)
@@ -59,12 +59,12 @@ def mkPlot(bfile, outpath):
 
     ax1.set_ylabel('Time (seconds)', fontsize=axisfontsize)
     ax2 = ax1.twinx()
-    ax2.set_ylabel('Memory (bytes)', fontsize=axisfontsize)
+    ax2.set_ylabel('Memory (megabytes)', fontsize=axisfontsize)
     ax3 = ax1.twiny()
 
     ax1.plot(linspace, fitfunc(linspace, *popt), color='orange', zorder=10)
     ax1.plot(tr, tk, marker='o', markersize=mymarkersize, linestyle='None', color='blue', zorder=20)
-    ax2.plot(tr, tm, marker='.', markersize=mymarkersize, linestyle='None', color='red', zorder=15)
+    ax2.plot(tr, list(map(lambda x : x/1000000, tm)), marker='.', markersize=mymarkersize, linestyle='None', color='red', zorder=15)
 
     ax1.legend([mkFitLegend(*popt), preflegend, memlegend], loc=(0.05, 0.8), fontsize=legentfontsize, numpoints=1)
     ax2.legend([memlegend], loc=(0.05, 0.7), fontsize=legentfontsize, numpoints=1)

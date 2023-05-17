@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 import matplotlib.pyplot as plt
 from pylab import * 
 import numpy as np
@@ -8,7 +9,6 @@ import string
 import os
 from matplotlib.ticker import ScalarFormatter 
 from scipy.optimize import curve_fit
-
 
 filetype = ".eps"
 ticksfontsize = 12
@@ -120,11 +120,18 @@ def mkPlot(bfile,outpath):
 
 if not os.path.exists('./plots'):
     os.makedirs('./plots')
+
+
+datadir = "./"
+if (len(sys.argv) > 1):
+    datadir = sys.argv[1]
     
+print("Source data:", datadir)
+
 i = 0
-for f in os.listdir("./"):
+for f in os.listdir(datadir):
     if (f.startswith("parametrised-benchmarks_")) and (f.endswith(".csv")):
         ostr = f+"plot-"+string.ascii_lowercase[i]+filetype
         print("Converting "+f+" to "+ostr)
-        mkPlot(f,ostr)
+        mkPlot(os.path.abspath(datadir+f),ostr)
         i += 1

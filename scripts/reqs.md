@@ -1,0 +1,3 @@
+# mkplot
+	scipy
+	matplotlib

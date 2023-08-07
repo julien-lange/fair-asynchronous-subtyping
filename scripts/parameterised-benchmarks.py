@@ -10,7 +10,7 @@ import csv
 
 
 # Number of iterations (> 1)
-maxiterations = 2 # 6
+maxiterations = 6
 
 logfile = "log-file-benchmarks.txt"
 tmpfile = "tmp-cfsm.txt"
@@ -18,8 +18,8 @@ tmpfile = "tmp-cfsm.txt"
 
 # OUTPUT FILE
 prefname = "parametrised-benchmarks"
-MIN = "--minimise"
-# MIN = ""
+# MIN = "--minimise"
+MIN = ""
 
 
 # TIMEOUT (in seconds)
@@ -45,15 +45,18 @@ def runOverRange(sid,minx, maxx, gencmd, step):
         with open(name+logfile, "wb") as log_file:
             for x in range(minx,maxx,step):
                         print("Test: ",str(x))
+                        genstart = time.time()
                         gcmd = gencmd(x)
-                        gcmd.wait(timeout=cmdtimeout)                                                        
+                        gcmd.wait(timeout=5)
+                        print("Generation time: ",  time.time()-genstart)                                              
                         nstates = ""
                         ntrans = ""
+                        infocmd = ""
                         if len(MIN)> 0: 
                             infocmd = subprocess.Popen(["../Checker","t1.txt","t2.txt", "--info", MIN], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         else:
                             infocmd = subprocess.Popen(["../Checker","t1.txt","t2.txt", "--info"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        infocmd.wait(timeout=cmdtimeout)                                                        
+                        infocmd.wait(timeout=cmdtimeout)
                         for line in infocmd.stdout:
                             sp = line.decode("utf-8")
                             if 'Size' in sp:
@@ -104,19 +107,21 @@ def runOverRange(sid,minx, maxx, gencmd, step):
 
 
 def moreRcvWidths(x):
-    cmd = subprocess.Popen(["./GenAsyncTypes",str(x),"1","1"], stdout=subprocess.PIPE)    
+    cmd = subprocess.Popen(["./GenAsyncTypes",str(x),"1","1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
     return cmd
 
 def moreRcvDepths(x):
-    cmd = subprocess.Popen(["./GenAsyncTypes","1", str(x),"1"], stdout=subprocess.PIPE)
+    cmd = subprocess.Popen(["./GenAsyncTypes","1", str(x),"1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return cmd 
 
 def moreSndWidths(x):
-    cmd = subprocess.Popen(["./GenAsyncTypes","1", "1",str(x)], stdout=subprocess.PIPE)
+    cmd = subprocess.Popen(["./GenAsyncTypes","1", "1",str(x)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return cmd 
 
 
 
-#runOverRange("B", 1, 60, moreRcvDepths, 5)
-#runOverRange("C", 1, 60, moreSndWidths, 5)
-runOverRange("A", 1, 20, moreRcvWidths, 1)
+           
+
+runOverRange("B", 1, 60, moreRcvDepths, 3)
+runOverRange("C", 1, 60, moreSndWidths, 3)
+runOverRange("A", 1, 25, moreRcvWidths, 1)

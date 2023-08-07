@@ -22,7 +22,7 @@ def fitfunc(x, a, b, c ):
 
 
 def mkFitLegend(ca,cb,cc):
-    return (r'$F(x)\approx%5.5f + %5.5f * %5.4f^x$' % (cc,ca,cb))
+    return (r'$F(x)\approx%5.3f + %5.4f * %5.3f^x$' % (cc,ca,cb))
 
 def mkPlot(bfile,outpath):
     tab = np.loadtxt(bfile,
@@ -70,6 +70,7 @@ def mkPlot(bfile,outpath):
     # plt.yscale('lin')
     
     ax2 = ax.twinx()
+
     # ax2.set_yscale("lin")
 
     
@@ -82,7 +83,12 @@ def mkPlot(bfile,outpath):
 
     ax2.legend([memlegend],loc=(0.05,0.7),fontsize=legentfontsize,numpoints=1)
 
-    
+    ticks = list(range(1,27,1))
+    ax3 = ax.twiny()
+
+    ax3.set_xlim(1, 30)
+    ax3.set_xticks(ticks)
+    ax3.set_xticklabels(ticks)
     
     (ca,cb,cc) = tuple(popt)
     ax.legend(
@@ -93,12 +99,14 @@ def mkPlot(bfile,outpath):
 
     
 
-    # xlabel = "m"
-    # if bfile.find("_A_") > 1:
-    #     xlabel = "n"
-    # if bfile.find("_C_") > 1:
-    #     xlabel = "k"
-    # ax.set_xlabel( r'Parameter $'+xlabel+'$',fontsize=axisfontsize)
+    xlabel = "m"
+    if bfile.find("_A_") > 1:
+        xlabel = "Branching width"
+    if bfile.find("_B_") > 1:
+        xlabel = "Input depth"
+    if bfile.find("_C_") > 1:
+        xlabel = "Selection width"
+    ax3.set_xlabel( r''+xlabel+'',fontsize=axisfontsize)
     ax.set_xlabel( r'Number of transitions in candidate supertype',fontsize=axisfontsize)
     
     plt.xscale('linear')

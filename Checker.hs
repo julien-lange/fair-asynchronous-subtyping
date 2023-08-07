@@ -107,7 +107,7 @@ main = do
               -- False = minimise
               checkingAlgorithm b (dualflag pargs) (debug pargs) (not $ minimise pargs) (info pargs) subans supans
               end <- getCurrentTime
-              putStrLn $ (show $ diffUTCTime end start)
-            --  return ()
+              -- putStrLn $ (show $ diffUTCTime end start)
+              return ()
   
  

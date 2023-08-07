@@ -40,11 +40,11 @@ genTopSnd i j k =
 -- -----------------------------------------------------------------
 
 
-genBot :: Int -> Int -> Int -> Tree
-genBot i j k = RecDef "X" (genBotSnd i j k)
+genBot :: Int -> Int -> Tree
+genBot i k = RecDef "X" (genBotSnd i k)
 
-genBotSnd :: Int -> Int -> Int -> Tree
-genBotSnd i j k = 
+genBotSnd :: Int -> Int -> Tree
+genBotSnd i k = 
   let tms = map (\x -> ((Send, "tm"++(show x)), (RecVar "X")))[0..k-1]
   in Choice $ tms ++ [((Send, "over"), genRcvLeaf i)]
 
@@ -104,12 +104,12 @@ main = do  args <- getArgs
 runChecker :: Int -> Int -> Int -> String -> IO ()
 runChecker y x k flag =
   let sup = printTree $ genTop x y k
-      sub = printTree $ genBot x y k
+      sub = printTree $ genBot x k
       cmd = "./Checker t1.txt t2.txt"
   in do writeToFile "t1.txt" sub
         writeToFile "t2.txt" sup
-        putStrLn sub
-        putStrLn sup
+        -- putStrLn sub
+        -- putStrLn sup
         -- start <- getCurrentTime
         -- out <- readProcess "bash" ["-c", cmd] []
         -- end <- getCurrentTime
